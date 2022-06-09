@@ -24,6 +24,8 @@
                 </ItemsPresenter.ItemTemplate>
             </ItemsPresenter>
         <ToolbarSpacer />
+        <TextBox Margin="0,0,10,0" KeyDown="GoCoordKeyDown" Watermark="Enter xyz coordinates" Text="{Binding GoCoordinates}" ToolTip.Tip="{Binding GoCoordinatesToolTip}" />
+        <Button Margin="0,0,10,0" VerticalAlignment="Center" Command="{Binding OnGoToClickCommand}">Go to:</Button>
         <ToggleButton ToolTip.Tip="Toggle areatriggers visibility" IsChecked="{CompiledBinding ShowAreaTriggers, Mode=TwoWay}">
             <WdeImage ImageUri="Icons/icon_areatrigger.png" />
         </ToggleButton>

@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Threading;
+using Avalonia.Input;
 using Prism.Commands;
 using Prism.Ioc;
 using TheEngine.Interfaces;
@@ -25,6 +26,8 @@ using WDE.MVVM;
 using WDE.MVVM.Observable;
 using WDE.WorldMap.Models;
 using WDE.WorldMap.Services;
+using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace WDE.MapRenderer
 {
@@ -49,7 +52,7 @@ namespace WDE.MapRenderer
             gameViewModel.DoRender();
         }
     }
-    
+
     [AutoRegister]
     public partial class GameViewModel : ObservableBase, ITool, IMapContext<GameCameraViewModel>
     {
@@ -70,7 +73,7 @@ namespace WDE.MapRenderer
                 SetProperty(ref currentGame, value);
                 if (value != null)
                 {
-                    value.OnFailedInitialize += OnFailedGameInitialize;   
+                    value.OnFailedInitialize += OnFailedGameInitialize;
                 }
             }
         }
@@ -81,7 +84,7 @@ namespace WDE.MapRenderer
         }
 
         private MapViewModel? selectedMap;
-        
+
         public MapViewModel? SelectedMap
         {
             get => selectedMap;
@@ -89,17 +92,19 @@ namespace WDE.MapRenderer
         }
 
         public IMapDataProvider MapData { get; }
-        
+
         private IEnumerable<MapViewModel> maps;
         private bool isMapVisible;
+        private string goCoordinates = "";
+        private string goCoordinatesToolTip = "Can't be empty";
 
         public IEnumerable<MapViewModel> Maps
         {
             get => maps;
             set => SetProperty(ref maps, value);
         }
-        
-        private ObservableCollection<object> toolBars  = new();
+
+        private ObservableCollection<object> toolBars = new();
         public ObservableCollection<object> ToolBars
         {
             get => toolBars;
@@ -111,7 +116,7 @@ namespace WDE.MapRenderer
         }
 
         public string Stats { get; private set; }
-        
+
         private GameProperties Properties { get; }
 
         class GameProxy : IGameModule
@@ -142,7 +147,7 @@ namespace WDE.MapRenderer
                 this.timeManager = timeManager;
                 this.gameContext = gameContext;
             }
-            
+
             private void RegisteredViewModelsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
             {
                 if (vm.IsSelected)
@@ -166,12 +171,12 @@ namespace WDE.MapRenderer
             }
 
             public object? ViewModel => null;
-            
+
             public void Initialize()
             {
                 registeredViewModels = moduleManager.ViewModels;
                 registeredViewModels.CollectionChanged += RegisteredViewModelsOnCollectionChanged;
-                
+
                 Dispatcher.UIThread.Post(() => vm.SelectedMap = vm.Maps?.FirstOrDefault(x => x.Id == gameContext.CurrentMap.Id), DispatcherPriority.Background);
                 gameContext.ChangedMap += newMapId =>
                 {
@@ -213,7 +218,7 @@ namespace WDE.MapRenderer
             {
                 if (!vm.DisplayStats)
                     return;
-                
+
                 ref var counters = ref statsManager.Counters;
                 ref var stats = ref statsManager.RenderStats;
                 float w = statsManager.PixelSize.X;
@@ -234,7 +239,7 @@ Meshes: " + stats.MeshSwitches + @"
 Batches: " + (stats.NonInstancedDraws + stats.InstancedDraws) + @"
 Batches saved by instancing: " + stats.InstancedDrawSaved + @"
 Tris: " + stats.TrianglesDrawn;
-                Dispatcher.UIThread.Post(()=>
+                Dispatcher.UIThread.Post(() =>
                 {
                     vm.RaisePropertyChanged(nameof(Stats));
                 }, DispatcherPriority.Render);
@@ -248,10 +253,58 @@ Tris: " + stats.TrianglesDrawn;
             {
             }
         }
-        
+
+        private bool GetCoordFromString(string stringCoord, out Vector3 coord, out string? errorString)
+        {
+            string str = stringCoord.Replace(',', '.');
+            string pattern = @"[X|x|]*[=]*\s*(?<X>-?\d+.?\d+)[\s]+[Y|y|]*[=]*\s*(?<Y>-?\d+.?\d+)[\s]+[Z|z|]*[=]*\s*(?<Z>\d+.?\d+)";
+
+            errorString = null;
+
+            coord = new Vector3();
+
+            while (true)
+            {
+                if (string.IsNullOrWhiteSpace(str))
+                {
+                    errorString = "Coords can't be null";
+                    break;
+                }
+
+                var results = Regex.Matches(str, pattern);
+
+                if (results.Count == 0)
+                {
+                    errorString = "Format is not valid, please enter 3 floats";
+                    break;
+                }
+
+                NumberStyles style = NumberStyles.Float;
+                bool xv = float.TryParse(results[0].Groups["X"].Value, style, CultureInfo.InvariantCulture, out coord.X);
+                if (!xv)
+                {
+                    errorString = "Unable to parse X value";
+                    break;
+                }
+                bool xy = float.TryParse(results[0].Groups["Y"].Value, style, CultureInfo.InvariantCulture, out coord.Y);
+                if (!xy)
+                {
+                    errorString = "Unable to parse Y value";
+                    break;
+                }
+                bool xz = float.TryParse(results[0].Groups["Z"].Value, style, CultureInfo.InvariantCulture, out coord.Z);
+                if (!xz)
+                {
+                    errorString = "Unable to parse Z value";
+                    break;
+                }
+                break;
+            }
+            return (errorString is null);
+        }
         public GameViewModel(IMpqService mpqService,
-            IDbcStore dbcStore, 
-            IMapDataProvider mapData, 
+            IDbcStore dbcStore,
+            IMapDataProvider mapData,
             ITaskRunner taskRunner,
             IMessageBoxService messageBoxService,
             IGameView gameView,
@@ -277,24 +330,24 @@ Tris: " + stats.TrianglesDrawn;
             Properties.TextureQuality = settings.TextureQuality;
 
             gameView.RegisterGameModule(container => container.Resolve<GameProxy>((typeof(GameViewModel), this)));
-            
+
             taskRunner.ScheduleTask("Loading maps", async () =>
             {
                 maps = dbcStore.MapDirectoryStore
                     .Select(pair =>
                     {
                         dbcStore.MapStore.TryGetValue(pair.Key, out var mapName);
-                        return new MapViewModel(pair.Value,  mapName, (uint)pair.Key);
+                        return new MapViewModel(pair.Value, mapName, (uint)pair.Key);
                     }).ToList();
                 RaisePropertyChanged(nameof(Maps));
             });
-            
+
             ToggleMapVisibilityCommand = new DelegateCommand(() => IsMapVisible = !IsMapVisible);
             ToggleStatsVisibilityCommand = new DelegateCommand(() => DisplayStats = !DisplayStats);
-            
+
             cameraViewModel = new GameCameraViewModel(this);
             Items.Add(cameraViewModel);
-            
+
             On(() => Visibility, @is =>
             {
                 if (@is && CurrentGame == null)
@@ -313,10 +366,21 @@ Tris: " + stats.TrianglesDrawn;
                     }
                 }
             });
+
+            OnGoToClickCommand = new DelegateCommand(() =>
+            {
+                string? errorString;
+                Vector3 coord;
+                if (GetCoordFromString(GoCoordinates, out coord, out errorString))
+                {
+                    System.Diagnostics.Debug.WriteLine("extracted coord {0}", coord);
+                    CurrentGame.Manager.CameraManager.Relocate(coord);
+                }
+            });
         }
 
         private int state = 0;
-        
+
         public bool CanClose()
         {
             if (state == 1)
@@ -352,7 +416,7 @@ Tris: " + stats.TrianglesDrawn;
                 RaisePropertyChanged(nameof(OverrideLighting));
             }
         }
-        
+
         public bool DisableTimeFlow
         {
             get => Properties.DisableTimeFlow;
@@ -385,7 +449,7 @@ Tris: " + stats.TrianglesDrawn;
                 RaisePropertyChanged(nameof(ShowAreaTriggers));
             }
         }
-        
+
         public bool ShowGrid
         {
             get => Properties.ShowGrid;
@@ -407,7 +471,15 @@ Tris: " + stats.TrianglesDrawn;
                 RaisePropertyChanged(nameof(ViewDistance));
             }
         }
-        
+
+        private void GoCoordKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                OnGoToClickCommand.Execute(null);
+            }
+        }
+
         public bool ShowTextureQualityWarning { get; set; }
 
         public int TextureQuality
@@ -422,7 +494,7 @@ Tris: " + stats.TrianglesDrawn;
                 RaisePropertyChanged(nameof(TextureQuality));
             }
         }
-        
+
         public float DynamicResolution
         {
             get => Properties.DynamicResolution;
@@ -432,7 +504,7 @@ Tris: " + stats.TrianglesDrawn;
                 RaisePropertyChanged(nameof(DynamicResolution));
             }
         }
-        
+
         public int CurrentTime
         {
             get => Properties.CurrentTime.TotalMinutes;
@@ -455,10 +527,31 @@ Tris: " + stats.TrianglesDrawn;
             get => isMapVisible;
             set => SetProperty(ref isMapVisible, value);
         }
-        
+        public string GoCoordinatesToolTip
+        {
+            get => goCoordinatesToolTip;
+            set => SetProperty(ref goCoordinatesToolTip, value);
+        }
+        public string GoCoordinates
+        {
+            get => goCoordinates;
+            set
+            {
+                string? error = CheckCoord(value);
+
+                if (error is not null)
+                {
+                    GoCoordinatesToolTip = error;
+                }
+                else
+                    GoCoordinatesToolTip = "Valid coordinates";
+                SetProperty(ref goCoordinates, value);
+            }
+        }
+
         public ICommand ToggleMapVisibilityCommand { get; }
         public ICommand ToggleStatsVisibilityCommand { get; }
-        
+        public ICommand OnGoToClickCommand { get; }
 
         public string UniqueId => "game_view";
 
@@ -488,6 +581,7 @@ Tris: " + stats.TrianglesDrawn;
         public event Action? RequestRender;
         public event Action<double, double>? RequestCenter;
         public event Action<double, double, double, double>? RequestBoundsToView;
+
         public void Initialized()
         {
         }
@@ -499,7 +593,15 @@ Tris: " + stats.TrianglesDrawn;
         public ObservableCollection<GameCameraViewModel> Items { get; } = new();
         public IEnumerable<GameCameraViewModel> VisibleItems => Items;
         public GameCameraViewModel? SelectedItem { get; set; }
-        
+
+        public string? CheckCoord(string value)
+        {
+            string? result;
+            Vector3 coord;
+            GetCoordFromString(value, out coord, out result);
+            return result;
+        }
+
         public void Move(GameCameraViewModel item, double x, double y)
         {
             if (currentGame == null)
