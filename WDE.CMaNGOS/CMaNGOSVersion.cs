@@ -8,7 +8,7 @@ namespace WDE.CMaNGOS
 {
     [AutoRegister]
     [SingleInstance]
-    public class AzerothCoreVersion : ICoreVersion, IDatabaseFeatures, ISmartScriptFeatures, IConditionFeatures, IGameVersionFeatures
+    public class CMaNGOSCoreVersion : ICoreVersion, IDatabaseFeatures, ISmartScriptFeatures, IConditionFeatures, IGameVersionFeatures
     {
         public string Tag => "CMaNGOS-WoTLK";
         public string FriendlyName => "CMaNGOS Wrath of the Lich King";

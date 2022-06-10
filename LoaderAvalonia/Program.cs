@@ -28,6 +28,8 @@ using WDE.WorldMap;
 using WDE.WoWHeadConnector;
 using WDE.AnniversaryInfo;
 using WDE.EventScriptsEditor;
+using WDE.CMaNGOS;
+using WDE.CMMySqlDatabase;
 
 namespace LoaderAvalonia
 {
@@ -66,7 +68,9 @@ namespace LoaderAvalonia
                 typeof(TrinityModule),
                 typeof(AzerothModule),
                 typeof(AnniversaryModule),
-                typeof(EventScriptsModule)
+                typeof(EventScriptsModule),
+                typeof(CMMySqlDatabaseModule),
+                typeof(CMaNGOSModule)
             };
             WoWDatabaseEditorCore.Avalonia.Program.PreloadedModules = modules;
             WoWDatabaseEditorCore.Avalonia.Program.Main(args);

@@ -45,6 +45,8 @@
       <ProjectReference Include="..\WoWDatabaseEditor\WoWDatabaseEditorCore.csproj" />
       <ProjectReference Include="..\WDE.MapRenderer\WDE.MapRenderer.csproj" />
       <ProjectReference Include="..\Modules\WDE.AnniversaryInfo\WDE.AnniversaryInfo.csproj" />
+      <ProjectReference Include="..\WoWDatabaseEditor.Common\WDE.CMMySqlDatabase\WDE.CMMySqlDatabase.csproj" />
+      <ProjectReference Include="..\WDE.CMaNGOS\WDE.CMaNGOS.csproj" />
     </ItemGroup>
 
 </Project>
