@@ -5,9 +5,9 @@ using WDE.MySqlDatabaseCommon.ViewModels;
 namespace WDE.CMMySqlDatabase.ViewModels
 {
     [AutoRegister]
-    public class DatabaseConfigViewModel : BaseDatabaseConfigViewModel
+    public class CMDatabaseConfigViewModel : BaseDatabaseConfigViewModel
     {
-        public DatabaseConfigViewModel(IWorldDatabaseSettingsProvider worldSettingsProvider,
+        public CMDatabaseConfigViewModel(IWorldDatabaseSettingsProvider worldSettingsProvider,
             IAuthDatabaseSettingsProvider authDatabaseSettingsProvider) : base(worldSettingsProvider, authDatabaseSettingsProvider)
         {
         }
