@@ -3,16 +3,18 @@ using WDE.Common.Database;
 
 namespace WDE.CMMySqlDatabase.Models
 {
-    [Table(Name = "areatrigger_template")]
+    // replacing areatrigger_template from tc to areatrigger_teleport but it seem cmangos have also areatrigger_tavern to have to be handled
+    [Table(Name = "areatrigger_teleport")]
     public class MySqlAreaTriggerTemplate : IAreaTriggerTemplate
     {
         [PrimaryKey]
-        [Column(Name = "Id")]
+        [Column(Name = "id")]
         public uint Id { get; set; }
 
-        [PrimaryKey]
-        [Column(Name = "IsServerSide")]
-        public bool IsServerSide { get; set; }
+        // no IsServerSide in cmangos
+//         [PrimaryKey]
+//         [Column(Name = "IsServerSide")]
+        public bool IsServerSide { get; set; } = true;
         
         // [Column(Name = "ScriptName")]
         // public string? ScriptName { get; set; }

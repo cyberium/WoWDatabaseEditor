@@ -105,11 +105,12 @@ namespace WDE.CMMySqlDatabase.Database
 
         public async Task<List<IConversationTemplate>> GetConversationTemplatesAsync()
         {
-            if (currentCoreVersion.Current.DatabaseFeatures.UnsupportedTables.Contains(typeof(IConversationTemplate)))
-                return new List<IConversationTemplate>();
-            
-            await using var model = Database();
-            return await (from t in model.ConversationTemplate orderby t.Id select t).ToListAsync<IConversationTemplate>();
+            return new List<IConversationTemplate>();
+//             if (currentCoreVersion.Current.DatabaseFeatures.UnsupportedTables.Contains(typeof(IConversationTemplate)))
+//                 return new List<IConversationTemplate>();
+//             
+//             await using var model = Database();
+//             return await (from t in model.ConversationTemplate orderby t.Id select t).ToListAsync<IConversationTemplate>();
         }
         
         public IEnumerable<IGossipMenu> GetGossipMenus()
@@ -239,18 +240,17 @@ namespace WDE.CMMySqlDatabase.Database
         public async Task<List<IGameObjectTemplate>> GetGameObjectTemplatesAsync()
         {
             await using var model = Database();
-            return await (from t in model.GameObjectTemplate orderby t.Entry select t).ToListAsync<IGameObjectTemplate>();
+            var o = from t in model.GameObjectTemplate orderby t.Entry select t;
+            return await (o).ToListAsync<IGameObjectTemplate>();
         }
 
         public abstract Task<List<IGameObject>> GetGameObjectsAsync();
 
         protected virtual IQueryable<MySqlQuestTemplate> GetQuestsQuery(BaseCMDatabase model)
         {
-            return (from t in model.QuestTemplate
-                join addon in model.QuestTemplateAddon on t.Entry equals addon.Entry into adn
-                from subaddon in adn.DefaultIfEmpty()
+            return from t in model.QuestTemplate
                 orderby t.Entry
-                select t.SetAddon(subaddon));
+                select t;
         }
         
         public virtual IEnumerable<IQuestTemplate> GetQuestTemplates()
@@ -263,14 +263,14 @@ namespace WDE.CMMySqlDatabase.Database
         public virtual async Task<List<IQuestTemplate>> GetQuestTemplatesAsync()
         {
             await using var model = Database();
-            return await GetQuestsQuery(model).ToListAsync<IQuestTemplate>();
+            var o = GetQuestsQuery(model);
+            return await o.ToListAsync<IQuestTemplate>();
         }
 
         public virtual IQuestTemplate? GetQuestTemplate(uint entry)
         {
             using var model = Database();
-            MySqlQuestTemplateAddon? addon = model.QuestTemplateAddon.FirstOrDefault(addon => addon.Entry == entry);
-            return model.QuestTemplate.FirstOrDefault(q => q.Entry == entry)?.SetAddon(addon);
+            return model.QuestTemplate.FirstOrDefault(q => q.Entry == entry);
         }
 
         public IGameObjectTemplate? GetGameObjectTemplate(uint entry)
@@ -330,14 +330,14 @@ namespace WDE.CMMySqlDatabase.Database
                     break;
                 }
                 case SmartScriptType.Quest:
-                    var addonExists = await model.QuestTemplateAddon.Where(p => p.Entry == (uint)entryOrGuid).AnyAsync();
-                    if (!addonExists)
-                        await model.QuestTemplateAddon.InsertAsync(() => new MySqlQuestTemplateAddon()
-                            {Entry = (uint)entryOrGuid});
-                    await model.QuestTemplateAddonWithScriptName
-                        .Where(p => p.Entry == (uint) entryOrGuid)
-                        .Set(p => p.ScriptName, "SmartQuest")
-                        .UpdateAsync();
+//                     var addonExists = await model.QuestTemplateAddon.Where(p => p.Entry == (uint)entryOrGuid).AnyAsync();
+//                     if (!addonExists)
+//                         await model.QuestTemplateAddon.InsertAsync(() => new MySqlQuestTemplateAddon()
+//                             {Entry = (uint)entryOrGuid});
+//                     await model.QuestTemplateAddonWithScriptName
+//                         .Where(p => p.Entry == (uint) entryOrGuid)
+//                         .Set(p => p.ScriptName, "SmartQuest")
+//                         .UpdateAsync();
                     break;
                 case SmartScriptType.AreaTrigger:
                     await model.AreaTriggerScript.Where(p => p.Entry == entryOrGuid).DeleteAsync();

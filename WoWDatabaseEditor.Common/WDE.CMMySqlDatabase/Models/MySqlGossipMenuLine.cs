@@ -6,13 +6,8 @@ namespace WDE.CMMySqlDatabase.Models
     [Table(Name = "gossip_menu")]
     public class MySqlGossipMenuLine
     {
-        [PrimaryKey]
-        [Column(Name = "MenuID")]
-        public uint MenuId { get; set; }
-
-        [PrimaryKey]
-        [Column(Name = "TextID")]
-        public uint TextId { get; set; }
+        [Column("entry"       , IsPrimaryKey = true, PrimaryKeyOrder = 0)] public ushort MenuId      { get; set; } // smallint(6) unsigned
+        [Column("text_id"     , IsPrimaryKey = true, PrimaryKeyOrder = 1)] public uint   TextId      { get; set; } // mediumint(8) unsigned
         
         public INpcText? Text { get; set; }
 

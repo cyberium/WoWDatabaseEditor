@@ -3,6 +3,7 @@ using WDE.Common.Database;
 
 namespace WDE.CMMySqlDatabase.Models
 {
+    // not exist in cmangos
     [Table(Name = "conversation_template")]
     public class MySqlConversationTemplate : IConversationTemplate
     {
